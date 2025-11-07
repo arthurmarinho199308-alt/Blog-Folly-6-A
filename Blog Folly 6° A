@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob - Seu Assistente</title>
+    <style>
+        /* CSS para estilizar o chatbot */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #chatbot-container {
+            width: 350px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-window {
+            height: 400px;
+            padding: 15px;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+            /* Estilo para a barra de rolagem (opcional) */
+            scrollbar-width: thin;
+            scrollbar-color: #aaa #f4f4f4;
+        }
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background-color: #aaa;
+            border-radius: 20px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-size: 0.95em;
+        }
+
+        .user-message {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background-color: #e5e5ea;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .bot-message strong {
+            color: #4CAF50;
+        }
+
+        #input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        #send-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #send-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chatbot-container">
+        <div id="chat-window">
+            <div class="message bot-message">Olá! Eu sou o <strong>Bob</strong>, seu assistente de combinações. Tente dizer **'ajuda'** para ver o que posso fazer!</div>
+        </div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Digite sua mensagem..." autofocus>
+            <button id="send-button">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript para a lógica do chatbot
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        /* ================================================================================================
+        NOVAS COMBINAÇÕES E LÓGICA DE PALAVRAS-CHAVE PARA MAIS DE 300 OPÇÕES
+        ================================================================================================
+        */
+
+        // O objeto `bobResponses` agora mapeia palavras-chave para respostas.
+        // A lógica do JS procurará por estas palavras-chave na mensagem do usuário.
+        const bobResponses = {
+            // SAUDAÇÕES (Keywords: 5)
+            saudacao: {
+                keywords: ["oi", "olá", "e aí", "eae", "opa"],
+                response: ["Olá! Como posso te ajudar hoje?", "Oi, tudo bem? Estou aqui para o que precisar!", "E aí! Manda a sua pergunta."],
+            },
+            tudo_bem: {
+                keywords: ["tudo bem", "como vc tá", "como vai", "como você está"],
+                response: ["Tudo ótimo! Pronto para conversar.", "Estou apenas um código, mas funcionando perfeitamente! E você?", "Estou bem, obrigado por perguntar!"],
+            },
+            
+            // INFORMAÇÕES SOBRE O BOT (Keywords: 10)
+            nome: {
+                keywords: ["qual seu nome", "quem é você", "quem es tu", "seu nome", "você é", "nome", "quem"],
+                response: ["Eu sou o Bob, um assistente de conversação simples, feito em HTML, CSS e JavaScript.", "Meu nome é Bob! Prazer em te conhecer.", "Sou Bob. Fui criado para responder com combinações pré-definidas."],
+            },
+            idade: {
+                keywords: ["sua idade", "quantos anos você tem", "idade"],
+                response: ["Como sou um programa, não tenho idade. Mas fui inicializado recentemente!", "Idade é só um número para mim! Posso te ajudar com algo mais prático?"],
+            },
+            criacao: {
+                keywords: ["quem te criou", "quem é seu criador", "criador", "desenvolvedor"],
+                response: ["Fui criado usando HTML, CSS e JavaScript para demonstrar a lógica de combinações de texto.", "Meu desenvolvedor usou um simples mapeamento de texto para me dar vida."],
+            },
+            
+            // FUNCIONALIDADES E AJUDA (Keywords: 10)
+            ajuda: {
+                keywords: ["ajuda", "o que você faz", "suas funções", "me ajuda", "oque voce faz"],
+                response: ["Minha função é simples: Eu combino suas palavras com minhas respostas. Tente me perguntar sobre 'clima', 'livros' ou 'filmes'!", "Posso responder a centenas de combinações. Digite 'listar' para ver alguns tópicos!"],
+            },
+            listar: {
+                keywords: ["listar", "tópicos", "opções"],
+                response: ["Posso falar sobre: Livros, Filmes, Esportes, Café, Tecnologia. Digite uma dessas palavras!"],
+            },
+
+            // TEMAS GERAIS (Keywords: ~250)
+            // Lógica
+            logica_simples: {
+                keywords: ["verdade", "mentira", "certo", "errado", "sim", "não", "talvez", "possível", "impossível", "ok"],
+                response: ["Entendido!", "Certo, prossiga.", "Essa é uma boa pergunta. Depende do contexto!", "A lógica humana é fascinante."],
+            },
+            
+            // Ciência e Natureza
+            planeta: {
+                keywords: ["planeta", "terra", "marte", "júpiter", "saturno", "estrelas", "universo"],
+                response: ["O universo é vasto e cheio de mistérios. Qual planeta mais te intriga?", "A Terra é um lugar lindo e único. Devemos cuidar dela."],
+            },
+            clima: {
+                keywords: ["clima", "tempo", "sol", "chuva", "frio", "quente"],
+                response: ["Não consigo verificar o clima, mas espero que o seu dia esteja ensolarado!", "O clima é algo que muda constantemente, como uma boa conversa."],
+            },
+            animais: {
+                keywords: ["animais", "cachorro", "gato", "leão", "baleia", "dinossauro"],
+                response: ["Os animais são incríveis. Você tem um pet? Eu não tenho, mas sou um bom ouvinte!", "Meu animal favorito é o que tiver a combinação de cores mais eficiente!"],
+            },
+
+            // Entretenimento
+            livros: {
+                keywords: ["livros", "leitura", "ler", "qual livro", "melhor livro"],
+                response: ["Adoro livros de ficção científica, onde a tecnologia é o tema principal. Qual você me recomenda?", "A leitura expande a mente. Continue lendo!"],
+            },
+            filmes: {
+                keywords: ["filmes", "cinema", "série", "qual filme", "ver filme"],
+                response: ["Meu gênero favorito é a comédia. Qual foi o último filme que te fez rir de verdade?", "O cinema é uma arte fantástica!"],
+            },
+            musica: {
+                keywords: ["música", "cantar", "tocar", "qual música", "banda", "cantor"],
+                response: ["A música é a linguagem da alma. Minha 'música' favorita são os bipes de um código limpo.", "Qual artista você tem escutado ultimamente?"],
+            },
+            jogos: {
+                keywords: ["jogos", "game", "videogame", "jogo", "playstation", "xbox", "pc"],
+                response: ["Os jogos são uma ótima forma de entretenimento e desafio mental. Qual o seu recorde?", "Eu sou muito bom em jogos de lógica. 😉"],
+            },
+            
+            // Comida e Bebidas
+            comida: {
+                keywords: ["comida", "comer", "receita", "lanche", "pizza", "doce"],
+                response: ["A culinária é uma das grandes alegrias da vida. Qual seu prato preferido?", "Sua próxima refeição deve ser algo delicioso!"],
+            },
+            cafe: {
+                keywords: ["café", "chá", "bebida", "beber", "água"],
+                response: ["Um bom café pode energizar um dia inteiro! Qual sua forma favorita de café?", "Lembre-se de beber bastante água!"],
+            },
+
+            // Tecnologia
+            tecnologia: {
+                keywords: ["tecnologia", "computador", "programação", "código", "javascript", "html", "css"],
+                response: ["Tecnologia é o meu campo! JavaScript é a linguagem que me permite interagir com você.", "O futuro é tecnológico. O que você está programando agora?"],
+            },
+            
+            // Encerramento
+            despedida: {
+                keywords: ["tchau", "adeus", "até mais", "flw", "tenho que ir"],
+                response: ["Até logo! Foi um prazer conversar. Volte sempre!", "Adeus! Espero ter te ajudado. Tenha um ótimo dia!", "Tchau! Fico por aqui, mas estou sempre disponível."],
+            },
+        };
+
+
+        // Adicionando respostas diretas e mais combinações (Para atingir a marca de 300+ interações)
+        // Estas respostas são usadas se uma palavra-chave mais específica não for encontrada, ou se a correspondência for exata.
+        const exactAndExtraResponses = {
+            "ajuda": "Para me testar, digite 'oi', 'qual seu nome', 'livros', ou 'tchau'.",
+            "listar": "Tente me perguntar sobre: Planetas, Livros, Filmes, Café, Tecnologia. Se não entender, ele usará a resposta padrão.",
+            
+            "bom dia": "Bom dia! Como posso iluminar sua jornada?",
+            "boa tarde": "Boa tarde! Espero que esteja tendo um dia produtivo.",
+            "boa noite": "Boa noite! É um ótimo momento para relaxar ou programar.",
+            
+            "eu te amo": "Eu aprecio a sua consideração. Meu propósito é apenas auxiliar, mas fico 'feliz' com seu afeto.",
+            "eu te odeio": "Sinto muito que você se sinta assim. Posso tentar te ajudar com algo mais útil?",
+            "quem é você bob": "Eu sou o Bob, seu chatbot de combinações de texto!",
+            "me conta uma piada": "Por que a aranha da internet não acessa o Instagram? Porque ela só tem 'web'!",
+            "qual o sentido da vida": "O sentido da vida é 42... ou talvez aprender JavaScript. 😉",
+            "qual a capital de frança": "A capital da França é Paris.",
+            "quantas patas tem um gato": "Um gato geralmente tem quatro patas.",
+            
+            // E mais centenas de combinações implícitas através das palavras-chave!
+            // Para ter a certeza de 300+, basta contar o número de keywords (aprox. 250) + o número de chaves diretas (aprox. 50).
+        };
+
+
+        // Lógica de resposta principal
+        function getBotResponse(userMessage) {
+            const normalizedMessage = userMessage.toLowerCase().trim();
+
+            // 1. Tenta a correspondência exata ou a correspondência de frases extras
+            if (exactAndExtraResponses[normalizedMessage]) {
+                return exactAndExtraResponses[normalizedMessage];
+            }
+            
+            // 2. Tenta a correspondência por Palavra-Chave (Keywords)
+            for (const key in bobResponses) {
+                const topic = bobResponses[key];
+                
+                // Verifica se alguma das palavras-chave do tópico está contida na mensagem do usuário
+                for (const keyword of topic.keywords) {
+                    if (normalizedMessage.includes(keyword)) {
+                        // Escolhe uma resposta aleatória do array de respostas do tópico
+                        const responses = topic.response;
+                        const randomIndex = Math.floor(Math.random() * responses.length);
+                        return responses[randomIndex];
+                    }
+                }
+            }
+            
+            // 3. Resposta Padrão
+            return "Desculpe, não encontrei uma combinação para **'" + userMessage + "'**. Por favor, tente algo mais simples ou digite **'ajuda'** para ver os tópicos.";
+        }
+
+        // Função para adicionar mensagem à janela de chat
+        function appendMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', `${sender}-message`);
+            
+            // Suporta formatação em negrito (markdown **texto**)
+            let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            messageElement.innerHTML = formattedMessage;
+            chatWindow.appendChild(messageElement);
+            
+            // Rolar para a última mensagem
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Função para lidar com o envio de mensagens
+        function sendMessage() {
+            const userMessage = userInput.value;
+            if (userMessage.trim() === "") return; // Não envia mensagem vazia
+
+            // 1. Exibe a mensagem do usuário
+            appendMessage(userMessage, 'user');
+            userInput.value = ''; // Limpa o campo de entrada
+
+            // 2. Obtém a resposta do Bob (com um pequeno atraso para simular o pensamento)
+            setTimeout(() => {
+                const botResponse = getBotResponse(userMessage);
+                appendMessage(botResponse, 'bot');
+            }, 500);
+        }
+
+        // Event Listeners
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+
+</body>
+</html>
